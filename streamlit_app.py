@@ -920,6 +920,8 @@ if uploaded is not None:
 if base_img is None:
     st.info("Başlamak için PDF veya görüntü yükleyin.")
     st.stop()
+st.write("APP OK - görüntü yüklendi")
+st.stop()
 
 if st.session_state.get("last_logged_upload") != uploaded_name and uploaded_name:
     write_log("UPLOAD_FILE", f"Dosya yüklendi: {uploaded_name}")
