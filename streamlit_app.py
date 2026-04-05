@@ -1123,10 +1123,11 @@ with c1:
     age_years = st.number_input("Yaş (yıl)", min_value=0.0, max_value=120.0, value=18.0, step=0.1)
 with c2:
     sex = st.selectbox("Cinsiyet", ["Kadın", "Erkek", "Belirtilmedi"])
-    st.write("OK AFTER INPUTS")
-    st.stop()
+    
 
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
+st.write("OK AFTER CHECKBOX")
+st.stop()
 
 if st.button("Klinik yorumu üret", type="primary"):
     st.write("OK 5")
