@@ -908,8 +908,7 @@ with st.sidebar:
     st.write(f"streamlit-cropper: {'Hazır' if CROPPER_OK else 'Yok'}")
 
 uploaded = st.file_uploader("PDF veya görüntü yükleyin", type=["pdf", "png", "jpg", "jpeg", "webp", "tif", "tiff"])
-st.write("APP OK - upload alanı geçti")
-st.stop()
+
 
 base_img = None
 uploaded_name = ""
@@ -929,6 +928,9 @@ if st.session_state.get("last_logged_upload") != uploaded_name and uploaded_name
 
 st.subheader("Yüklenen sayfa / görüntü")
 st.image(base_img, caption="Kaynak görsel", width="stretch")
+
+st.write("APP OK - kaynak görsel gösterildi")
+st.stop()
 
 st.subheader("Peak Table ROI seçimi")
 if CROPPER_OK:
