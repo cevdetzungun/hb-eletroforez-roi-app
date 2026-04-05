@@ -926,11 +926,12 @@ if st.session_state.get("last_logged_upload") != uploaded_name and uploaded_name
 
 st.subheader("Yüklenen sayfa / görüntü")
 st.image(base_img, caption="Kaynak görsel", width="stretch")
-st.write("OK 1")
-st.stop()
 
 
 st.subheader("Peak Table ROI seçimi")
+st.write("OK 2")
+st.stop()
+
 if CROPPER_OK:
     st.info("Fare ile Peak Table alanını seçin. A2 satırı ve mümkünse alt konsantrasyon kutusu da seçim alanına dahil olsun.")
     roi_img = st_cropper(
