@@ -1128,8 +1128,8 @@ with c2:
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
 
 
-st.button("Klinik yorumu üret", type="primary")
-st.write("OK BUTTON RENDERED")
-st.stop()
+if st.button("Klinik yorumu üret", type="primary"):
+    st.write("OK 6")
+    st.stop()
 
     
