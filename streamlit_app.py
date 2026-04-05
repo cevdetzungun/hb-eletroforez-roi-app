@@ -960,10 +960,11 @@ else:
     if "roi_ready" not in st.session_state:
         st.session_state.roi_ready = False
 
-    st.write("OK 3")
-    st.stop()
 
     with st.form("manual_roi_form"):
+        st.write("OK 4")
+        st.stop()
+        
         c1, c2 = st.columns(2)
         with c1:
             left = st.slider("Sol", 0, w - 1, st.session_state.roi_left)
