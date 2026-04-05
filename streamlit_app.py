@@ -1126,11 +1126,10 @@ with c2:
     
 
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
-st.write("OK AFTER CHECKBOX")
-st.stop()
+
 
 if st.button("Klinik yorumu üret", type="primary"):
-    st.write("OK 5")
+    st.write("OK BUTTON RENDERED")
     st.stop()
     final_variant = is_variant or manual_override_variant
     hba2 = named["HbA2"] if named["HbA2"] is not None else 0.0
