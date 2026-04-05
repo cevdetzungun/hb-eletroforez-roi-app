@@ -937,27 +937,58 @@ if CROPPER_OK:
         return_type="image"
     )
 else:
-    st.warning("İnteraktif cropper bulunamadı. Slaytlarla ROI seçimi kullanılıyor.")
+    st.warning("İnteraktif cropper devre dışı. Manuel ROI seçimi form ile kullanılıyor.")
+
     w, h = base_img.size
     default_left = int(w * 0.08)
     default_top = int(h * 0.55)
     default_right = int(w * 0.82)
     default_bottom = int(h * 0.95)
 
-    c1, c2 = st.columns(2)
-    with c1:
-        left = st.slider("Sol", 0, w - 1, default_left)
-        top = st.slider("Üst", 0, h - 1, default_top)
-    with c2:
-        right = st.slider("Sağ", 1, w, default_right)
-        bottom = st.slider("Alt", 1, h, default_bottom)
+    if "roi_left" not in st.session_state:
+        st.session_state.roi_left = default_left
+    if "roi_top" not in st.session_state:
+        st.session_state.roi_top = default_top
+    if "roi_right" not in st.session_state:
+        st.session_state.roi_right = default_right
+    if "roi_bottom" not in st.session_state:
+        st.session_state.roi_bottom = default_bottom
+    if "roi_ready" not in st.session_state:
+        st.session_state.roi_ready = False
 
-    if right <= left:
-        right = min(w, left + 10)
-    if bottom <= top:
-        bottom = min(h, top + 10)
+    with st.form("manual_roi_form"):
+        c1, c2 = st.columns(2)
+        with c1:
+            left = st.slider("Sol", 0, w - 1, st.session_state.roi_left)
+            top = st.slider("Üst", 0, h - 1, st.session_state.roi_top)
+        with c2:
+            right = st.slider("Sağ", 1, w, st.session_state.roi_right)
+            bottom = st.slider("Alt", 1, h, st.session_state.roi_bottom)
 
-    roi_img = base_img.crop((left, top, right, bottom))
+        apply_roi = st.form_submit_button("ROI'yi uygula", type="primary")
+
+    if apply_roi:
+        st.session_state.roi_left = left
+        st.session_state.roi_top = top
+        st.session_state.roi_right = right
+        st.session_state.roi_bottom = bottom
+        st.session_state.roi_ready = True
+
+    if st.session_state.roi_right <= st.session_state.roi_left:
+        st.session_state.roi_right = min(w, st.session_state.roi_left + 10)
+    if st.session_state.roi_bottom <= st.session_state.roi_top:
+        st.session_state.roi_bottom = min(h, st.session_state.roi_top + 10)
+
+    roi_img = base_img.crop((
+        st.session_state.roi_left,
+        st.session_state.roi_top,
+        st.session_state.roi_right,
+        st.session_state.roi_bottom
+    ))
+
+    if not st.session_state.roi_ready:
+        st.info("Önce ROI alanını ayarlayıp 'ROI'yi uygula' butonuna basın.")
+        st.stop()
 
 st.image(roi_img, caption="Seçilen Peak Table ROI", width="stretch")
 
