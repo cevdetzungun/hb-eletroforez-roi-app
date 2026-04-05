@@ -928,12 +928,9 @@ if st.session_state.get("last_logged_upload") != uploaded_name and uploaded_name
 
 st.subheader("Yüklenen sayfa / görüntü")
 st.image(base_img, caption="Kaynak görsel", width="stretch")
-
-st.subheader("Yüklenen sayfa / görüntü")
-st.image(base_img, caption="Kaynak görsel", width="stretch")
-
-st.write("APP OK - kaynak görsel gösterildi")
+st.write("OK 1")
 st.stop()
+
 
 st.subheader("Peak Table ROI seçimi")
 if CROPPER_OK:
