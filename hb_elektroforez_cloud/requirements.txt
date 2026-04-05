@@ -1,8 +1,0 @@
-streamlit
-numpy
-pandas
-Pillow
-pytesseract
-PyMuPDF
-pdf2image
-streamlit-cropper
