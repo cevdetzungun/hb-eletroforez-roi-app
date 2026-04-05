@@ -962,8 +962,7 @@ else:
 
 
     with st.form("manual_roi_form"):
-        st.write("OK 4")
-        st.stop()
+        
         
         c1, c2 = st.columns(2)
         with c1:
@@ -975,12 +974,16 @@ else:
 
         apply_roi = st.form_submit_button("ROI'yi uygula", type="primary")
 
+
     if apply_roi:
         st.session_state.roi_left = left
         st.session_state.roi_top = top
         st.session_state.roi_right = right
         st.session_state.roi_bottom = bottom
         st.session_state.roi_ready = True
+
+    if not st.session_state.get("roi_ready"):
+        st.stop()
 
     if st.session_state.roi_right <= st.session_state.roi_left:
         st.session_state.roi_right = min(w, st.session_state.roi_left + 10)
