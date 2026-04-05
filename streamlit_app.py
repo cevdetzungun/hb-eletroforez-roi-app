@@ -929,8 +929,7 @@ st.image(base_img, caption="Kaynak görsel", width="stretch")
 
 
 st.subheader("Peak Table ROI seçimi")
-st.write("OK 2")
-st.stop()
+
 
 if CROPPER_OK:
     st.info("Fare ile Peak Table alanını seçin. A2 satırı ve mümkünse alt konsantrasyon kutusu da seçim alanına dahil olsun.")
@@ -960,6 +959,9 @@ else:
         st.session_state.roi_bottom = default_bottom
     if "roi_ready" not in st.session_state:
         st.session_state.roi_ready = False
+
+    st.write("OK 3")
+    st.stop()
 
     with st.form("manual_roi_form"):
         c1, c2 = st.columns(2)
