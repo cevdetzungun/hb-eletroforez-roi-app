@@ -25,7 +25,7 @@ except Exception:
 
 try:
     from streamlit_cropper import st_cropper
-    CROPPER_OK = True
+    CROPPER_OK = False
 except Exception:
     CROPPER_OK = False
 
