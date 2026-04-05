@@ -981,6 +981,7 @@ else:
         st.session_state.roi_right = right
         st.session_state.roi_bottom = bottom
         st.session_state.roi_ready = True
+        st.session_state.ocr_ready = False
 
     if not st.session_state.get("roi_ready"):
         st.stop()
