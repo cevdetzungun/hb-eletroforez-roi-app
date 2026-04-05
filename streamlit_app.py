@@ -1131,39 +1131,6 @@ manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işare
 st.button("Klinik yorumu üret", type="primary")
 st.write("OK BUTTON RENDERED")
 st.stop()
-final_variant = is_variant or manual_override_variant
-hba2 = named["HbA2"] if named["HbA2"] is not None else 0.0
-hbf = named["HbF"] if named["HbF"] is not None else 0.0
-
-    if final_variant:
-        result = {
-            "block": None,
-            "reason": "S-Window ve/veya Unknown pik > %5 olduğu için ek pik / yapısal varyant lehine bulgu",
-            "comment": build_variant_comment(named, repeat_confirmed=repeat_confirmed),
-        }
-    else:
-        result = generate_comment(
-            age_years=age_years,
-            sex=sex,
-            hba2=float(hba2),
-            hbf=float(hbf),
-            hba=float(calc_hba),
-            extra_variant_peak=False
-        )
-
-    peak_changes, changed_cells = compare_peak_tables(parsed_df, edited_df)
-    if peak_changes:
-        details = " | ".join(peak_changes[:25])
-        if len(peak_changes) > 25:
-            details += f" | ... toplam {len(peak_changes)} değişiklik"
-        write_log("PEAK_TABLE_EDIT", details)
-    else:
-        write_log("PEAK_TABLE_EDIT", "Peak table üzerinde değişiklik yapılmadı")
-
-    write_log(
-        "GENERATE_COMMENT",
-        f"Yorum üretildi | yaş={age_years} | cinsiyet={sex} | HbA={calc_hba:.1f} | HbA2={fmt_optional_pct(named['HbA2'])} | HbF={fmt_optional_pct(named['HbF'])} | varyant={'Evet' if final_variant else 'Hayır'}"
-    )
 
     st.subheader("Sonuç")
     if result["block"]:
