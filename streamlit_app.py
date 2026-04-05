@@ -1116,8 +1116,6 @@ with st.expander("HbA hesaplama detayları"):
     st.write("**Hesap bileşenleri**")
     st.dataframe(pd.DataFrame(excluded_peaks, columns=["Bileşen", "Değer", "Açıklama"]), width="stretch")
 
-st.write("OK BEFORE CLINICAL")
-st.stop()
 
 st.subheader("Klinik girişler")
 c1, c2 = st.columns(2)
@@ -1125,6 +1123,8 @@ with c1:
     age_years = st.number_input("Yaş (yıl)", min_value=0.0, max_value=120.0, value=18.0, step=0.1)
 with c2:
     sex = st.selectbox("Cinsiyet", ["Kadın", "Erkek", "Belirtilmedi"])
+    st.write("OK AFTER INPUTS")
+    st.stop()
 
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
 
