@@ -1116,6 +1116,9 @@ with st.expander("HbA hesaplama detayları"):
     st.write("**Hesap bileşenleri**")
     st.dataframe(pd.DataFrame(excluded_peaks, columns=["Bileşen", "Değer", "Açıklama"]), width="stretch")
 
+st.write("OK BEFORE CLINICAL")
+st.stop()
+
 st.subheader("Klinik girişler")
 c1, c2 = st.columns(2)
 with c1:
