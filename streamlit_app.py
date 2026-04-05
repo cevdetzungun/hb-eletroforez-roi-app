@@ -931,7 +931,7 @@ if CROPPER_OK:
     st.info("Fare ile Peak Table alanını seçin. A2 satırı ve mümkünse alt konsantrasyon kutusu da seçim alanına dahil olsun.")
     roi_img = st_cropper(
         base_img,
-        realtime_update=True,
+        realtime_update=False,
         box_color="#4F8BF9",
         aspect_ratio=None,
         return_type="image"
