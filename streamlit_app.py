@@ -1014,8 +1014,12 @@ if st.session_state.parsed_df is None:
         concentration_fallback = parse_concentration_box(roi_img)
         parsed_direct = standardize_table(pd.DataFrame(), concentration_fallback=concentration_fallback)
         parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
-        st.write("OCR STEP 3 geçti")
-        st.stop()
+        parsed_df = standardize_table(
+            merge_candidate_tables(parsed_direct, parsed_roi_columns),
+            concentration_fallback=concentration_fallback
+)
+st.write("OCR STEP 4 geçti")
+st.stop()
 
         st.session_state.concentration_fallback = concentration_fallback
         st.session_state.parsed_df = parsed_df
