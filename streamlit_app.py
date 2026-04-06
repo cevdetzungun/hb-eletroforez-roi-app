@@ -25,7 +25,7 @@ except Exception:
 
 try:
     from streamlit_cropper import st_cropper
-    CROPPER_OK = False
+    CROPPER_OK = True
 except Exception:
     CROPPER_OK = False
 
@@ -852,10 +852,14 @@ def build_display_df_with_keys(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+
 # -----------------------------
 # Main app
 # -----------------------------
 ensure_log_file()
+
+# Streamlit Cloud için cropper'ı zorla kapatıyoruz
+CROPPER_OK = False
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -889,7 +893,8 @@ with st.sidebar:
 
     st.markdown("""
 **Uygulama notları**
-- Peak Table alanını ROI ile seçmeniz beklenir.
+- ROI seçimi manuel form ile yapılır.
+- Önce ROI seçilir, sonra OCR / tablo okuma işlemi ayrı butonla başlatılır.
 - Varyant lehine bulgu kuralı:
   - S-Window > %5
   - Unknown > %5
@@ -905,10 +910,9 @@ with st.sidebar:
         st.code(TESSERACT_PATH)
     st.write(f"pdf2image: {'Hazır' if PDF2IMAGE_OK else 'Yok'}")
     st.write(f"PyMuPDF: {'Hazır' if PYMUPDF_OK else 'Yok'}")
-    st.write(f"streamlit-cropper: {'Hazır' if CROPPER_OK else 'Yok'}")
+    st.write("streamlit-cropper: Cloud sürümünde devre dışı")
 
 uploaded = st.file_uploader("PDF veya görüntü yükleyin", type=["pdf", "png", "jpg", "jpeg", "webp", "tif", "tiff"])
-
 
 base_img = None
 uploaded_name = ""
@@ -923,96 +927,114 @@ if base_img is None:
 if st.session_state.get("last_logged_upload") != uploaded_name and uploaded_name:
     write_log("UPLOAD_FILE", f"Dosya yüklendi: {uploaded_name}")
     st.session_state["last_logged_upload"] = uploaded_name
+    # yeni dosyada eski OCR/ROI cache temizlensin
+    for key in [
+        "roi_left", "roi_top", "roi_right", "roi_bottom", "roi_ready",
+        "parsed_df", "concentration_fallback", "ocr_best_text", "ocr_processed_name"
+    ]:
+        st.session_state.pop(key, None)
 
 st.subheader("Yüklenen sayfa / görüntü")
 st.image(base_img, caption="Kaynak görsel", width="stretch")
 
-
+# -----------------------------
+# ROI selection (Cloud-safe manual form)
+# -----------------------------
 st.subheader("Peak Table ROI seçimi")
+st.warning("İnteraktif cropper Streamlit Cloud kararlılığı için kapatıldı. Manuel ROI formunu kullanın.")
 
+w, h = base_img.size
+default_left = int(w * 0.08)
+default_top = int(h * 0.55)
+default_right = int(w * 0.82)
+default_bottom = int(h * 0.95)
 
-if CROPPER_OK:
-    st.info("Fare ile Peak Table alanını seçin. A2 satırı ve mümkünse alt konsantrasyon kutusu da seçim alanına dahil olsun.")
-    roi_img = st_cropper(
-        base_img,
-        realtime_update=False,
-        box_color="#4F8BF9",
-        aspect_ratio=None,
-        return_type="image"
-    )
-else:
-    st.warning("İnteraktif cropper devre dışı. Manuel ROI seçimi form ile kullanılıyor.")
+if "roi_left" not in st.session_state:
+    st.session_state.roi_left = default_left
+if "roi_top" not in st.session_state:
+    st.session_state.roi_top = default_top
+if "roi_right" not in st.session_state:
+    st.session_state.roi_right = default_right
+if "roi_bottom" not in st.session_state:
+    st.session_state.roi_bottom = default_bottom
+if "roi_ready" not in st.session_state:
+    st.session_state.roi_ready = False
+if "parsed_df" not in st.session_state:
+    st.session_state.parsed_df = None
+if "concentration_fallback" not in st.session_state:
+    st.session_state.concentration_fallback = None
+if "ocr_best_text" not in st.session_state:
+    st.session_state.ocr_best_text = ""
+if "ocr_processed_name" not in st.session_state:
+    st.session_state.ocr_processed_name = None
 
-    w, h = base_img.size
-    default_left = int(w * 0.08)
-    default_top = int(h * 0.55)
-    default_right = int(w * 0.82)
-    default_bottom = int(h * 0.95)
+with st.form("manual_roi_form"):
+    c1, c2 = st.columns(2)
+    with c1:
+        left = st.slider("Sol", 0, w - 1, int(st.session_state.roi_left))
+        top = st.slider("Üst", 0, h - 1, int(st.session_state.roi_top))
+    with c2:
+        right = st.slider("Sağ", 1, w, int(st.session_state.roi_right))
+        bottom = st.slider("Alt", 1, h, int(st.session_state.roi_bottom))
 
-    if "roi_left" not in st.session_state:
-        st.session_state.roi_left = default_left
-    if "roi_top" not in st.session_state:
-        st.session_state.roi_top = default_top
-    if "roi_right" not in st.session_state:
-        st.session_state.roi_right = default_right
-    if "roi_bottom" not in st.session_state:
-        st.session_state.roi_bottom = default_bottom
-    if "roi_ready" not in st.session_state:
-        st.session_state.roi_ready = False
+    apply_roi = st.form_submit_button("ROI'yi uygula", type="primary")
 
+if apply_roi:
+    if right <= left:
+        right = min(w, left + 10)
+    if bottom <= top:
+        bottom = min(h, top + 10)
 
-    with st.form("manual_roi_form"):
-        
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            left = st.slider("Sol", 0, w - 1, st.session_state.roi_left)
-            top = st.slider("Üst", 0, h - 1, st.session_state.roi_top)
-        with c2:
-            right = st.slider("Sağ", 1, w, st.session_state.roi_right)
-            bottom = st.slider("Alt", 1, h, st.session_state.roi_bottom)
+    st.session_state.roi_left = left
+    st.session_state.roi_top = top
+    st.session_state.roi_right = right
+    st.session_state.roi_bottom = bottom
+    st.session_state.roi_ready = True
+    st.session_state.parsed_df = None
+    st.session_state.concentration_fallback = None
+    st.session_state.ocr_best_text = ""
+    st.session_state.ocr_processed_name = uploaded_name
+    write_log("ROI_APPLIED", f"ROI uygulandı: left={left}, top={top}, right={right}, bottom={bottom}")
+    st.rerun()
 
-        apply_roi = st.form_submit_button("ROI'yi uygula", type="primary")
+if st.session_state.roi_right <= st.session_state.roi_left:
+    st.session_state.roi_right = min(w, st.session_state.roi_left + 10)
+if st.session_state.roi_bottom <= st.session_state.roi_top:
+    st.session_state.roi_bottom = min(h, st.session_state.roi_top + 10)
 
-
-    if apply_roi:
-        st.session_state.roi_left = left
-        st.session_state.roi_top = top
-        st.session_state.roi_right = right
-        st.session_state.roi_bottom = bottom
-        st.session_state.roi_ready = True
-        st.session_state.ocr_ready = False
-        st.session_state.parsed_df = None
-        st.session_state.concentration_fallback = None
-
-    if not st.session_state.get("roi_ready"):
-        st.stop()
-
-    if st.session_state.roi_right <= st.session_state.roi_left:
-        st.session_state.roi_right = min(w, st.session_state.roi_left + 10)
-    if st.session_state.roi_bottom <= st.session_state.roi_top:
-        st.session_state.roi_bottom = min(h, st.session_state.roi_top + 10)
-
-    roi_img = base_img.crop((
-        st.session_state.roi_left,
-        st.session_state.roi_top,
-        st.session_state.roi_right,
-        st.session_state.roi_bottom
-    ))
-
-    if not st.session_state.roi_ready:
-        st.info("Önce ROI alanını ayarlayıp 'ROI'yi uygula' butonuna basın.")
-        st.stop()
-
+roi_img = base_img.crop((
+    st.session_state.roi_left,
+    st.session_state.roi_top,
+    st.session_state.roi_right,
+    st.session_state.roi_bottom
+))
 st.image(roi_img, caption="Seçilen Peak Table ROI", width="stretch")
 
-if "ocr_ready" not in st.session_state:
-    st.session_state.ocr_ready = False
+if not st.session_state.roi_ready:
+    st.info("Önce ROI alanını ayarlayıp 'ROI'yi uygula' butonuna basın.")
+    st.stop()
+
+# -----------------------------
+# OCR and parse (run once per ROI)
+# -----------------------------
+st.subheader("ROI OCR ve Peak Table ayrıştırma")
 
 if st.session_state.parsed_df is None:
-    if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
+    if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary", key="ocr_parse_button"):
+        best_text = ""
+        best_score = -1
+
+        variant_images = preprocess_variants(roi_img)
+        for _, img_variant in variant_images.items():
+            txt = ocr_text(img_variant, psm=6)
+            df_candidate = parse_rows_from_text(txt)
+            score = len(df_candidate)
+            if score > best_score:
+                best_score = score
+                best_text = txt
+
         concentration_fallback = parse_concentration_box(roi_img)
-        parsed_direct = standardize_table(pd.DataFrame(), concentration_fallback=concentration_fallback)
+        parsed_direct = standardize_table(parse_rows_from_text(best_text), concentration_fallback=concentration_fallback)
         parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
         parsed_df = standardize_table(
             merge_candidate_tables(parsed_direct, parsed_roi_columns),
@@ -1021,36 +1043,21 @@ if st.session_state.parsed_df is None:
 
         st.session_state.concentration_fallback = concentration_fallback
         st.session_state.parsed_df = parsed_df
+        st.session_state.ocr_best_text = best_text
+        write_log("OCR_PARSED", f"OCR tablo okuma tamamlandı | rows={len(parsed_df)}")
         st.rerun()
     else:
         st.info("Önce ROI'yi uygula, sonra OCR / tablo okuma işlemini bu butonla başlat.")
     st.stop()
 
-if "parsed_df" not in st.session_state:
-    st.session_state.parsed_df = None
-
-if "concentration_fallback" not in st.session_state:
-    st.session_state.concentration_fallback = None
-
-
-st.subheader("ROI OCR ve Peak Table ayrıştırma")
-
-best_text = ""
-best_score = -1
-variant_images = preprocess_variants(roi_img)
-for _, img_variant in variant_images.items():
-    txt = ocr_text(img_variant, psm=6)
-    df_candidate = parse_rows_from_text(txt)
-    score = len(df_candidate)
-    if score > best_score:
-        best_score = score
-        best_text = txt
-
 concentration_fallback = st.session_state.concentration_fallback
-parsed_df = st.session_state.parsed_df
+parsed_df = st.session_state.parsed_df if st.session_state.parsed_df is not None else standardize_table(pd.DataFrame())
 
 st.dataframe(parsed_df, width="stretch")
 
+# -----------------------------
+# Manual correction
+# -----------------------------
 st.subheader("Peak Table doğrulama / manuel düzeltme")
 edited_df = st.data_editor(
     parsed_df,
@@ -1103,7 +1110,7 @@ def highlight_changed(row):
             styles.append("background-color: #fff3b0; color: #7a4b00; font-weight: 600;")
         else:
             styles.append("")
-    styles.extend(["", "", ""])  # hidden helper cols safety
+    styles.extend(["", "", ""])
     return styles
 
 st.markdown("**Değiştirilen hücreler renkli önizleme**")
@@ -1113,6 +1120,9 @@ st.dataframe(
     width="stretch"
 )
 
+# -----------------------------
+# Calculations
+# -----------------------------
 st.subheader("Hesaplanan ana parametreler")
 
 named = extract_named_peaks(edited_df)
@@ -1141,21 +1151,17 @@ with st.expander("HbA hesaplama detayları"):
     st.write("**Hesap bileşenleri**")
     st.dataframe(pd.DataFrame(excluded_peaks, columns=["Bileşen", "Değer", "Açıklama"]), width="stretch")
 
-
-
+# -----------------------------
+# Clinical interpretation
+# -----------------------------
 st.subheader("Klinik girişler")
-
 c1, c2 = st.columns(2)
 with c1:
     age_years = st.number_input("Yaş (yıl)", min_value=0.0, max_value=120.0, value=18.0, step=0.1)
 with c2:
     sex = st.selectbox("Cinsiyet", ["Kadın", "Erkek", "Belirtilmedi"])
 
-manual_override_variant = st.checkbox(
-    "Varyant lehine bulgu olarak manuel işaretle",
-    value=False,
-)
-
+manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
 run_comment = st.button("Klinik yorumu üret", type="primary", key="generate_comment_button")
 
 if run_comment:
@@ -1176,7 +1182,7 @@ if run_comment:
     has_any_area = edited_df_safe["Area %"].str.strip().ne("").any()
 
     if not has_any_value or not has_any_area:
-        st.error("Peak Table içeriği boş olduğu için klinik yorum üretilemedi. Önce OCR sonucunu doğrulayın.")
+        st.error("Peak Table içeriği boş olduğu için klinik yorum üretilemedi. Önce OCR sonucunu doğrulayın veya manuel veri girin.")
         st.stop()
 
     named = extract_named_peaks(edited_df_safe)
@@ -1207,7 +1213,7 @@ if run_comment:
             extra_variant_peak=False
         )
 
-    peak_changes, changed_cells = compare_peak_tables(parsed_df, edited_df_safe)
+    peak_changes, _ = compare_peak_tables(parsed_df, edited_df_safe)
     if peak_changes:
         details = " | ".join(peak_changes[:25])
         if len(peak_changes) > 25:
@@ -1264,7 +1270,7 @@ if run_comment:
     st.download_button(
         "Raporu TXT olarak indir",
         data=export_text,
-        file_name="hey_roi_rapor.txt",
+        file_name="hey_roi_v11_rapor.txt",
         mime="text/plain",
         key="download_report_button",
     )
