@@ -1172,7 +1172,6 @@ if run_comment:
     st.stop()
 
 
-if st.button("Klinik yorumu üret", type="primary"):
     st.write("OK 6")
     st.stop()
 
