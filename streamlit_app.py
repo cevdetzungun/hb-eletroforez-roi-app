@@ -1152,8 +1152,24 @@ with c2:
 
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
 
-st.write("BUTTON LINE REACHED")
-st.stop()
+run_comment = st.button("Klinik yorumu üret", type="primary")
+
+if run_comment:
+    if edited_df is None or pd.DataFrame(edited_df).empty:
+        st.error("Peak Table boş olduğu için klinik yorum üretilemedi. Önce ROI ve OCR adımlarını kontrol edin.")
+        st.stop()
+
+    nonempty_rows = pd.DataFrame(edited_df).fillna("").astype(str)
+    has_any_value = nonempty_rows[["Peak", "R.time", "Height", "Area", "Area %"]].apply(
+        lambda col: col.str.strip()
+    ).ne("").any().any()
+
+    if not has_any_value:
+        st.error("Peak Table içeriği boş olduğu için klinik yorum üretilemedi. Önce OCR sonucunu doğrulayın.")
+        st.stop()
+
+    st.write("COMMENT BUTTON SAFE")
+    st.stop()
 
 
 if st.button("Klinik yorumu üret", type="primary"):
