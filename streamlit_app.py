@@ -1,4 +1,4 @@
-import io
+mport io
 import json
 import re
 import shutil
@@ -31,7 +31,7 @@ except Exception:
 
 
 APP_NAME = "HEY ROI"
-APP_VERSION = "v10"
+APP_VERSION = "v12"
 AUTHOR_LINE = "by Dr. Cevdet ZÜNGÜN"
 INTERPRETATION_SIGNATURE = "by Dr. Bağdagül ÇAKIR"
 USERS_FILE = Path("hey_roi_users.json")
@@ -1165,112 +1165,123 @@ manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işare
 run_comment = st.button("Klinik yorumu üret", type="primary", key="generate_comment_button")
 
 if run_comment:
-    edited_df_safe = pd.DataFrame(edited_df).copy()
+    try:
+        edited_df_safe = pd.DataFrame(edited_df).copy()
 
-    if edited_df_safe.empty:
-        st.error("Peak Table boş olduğu için klinik yorum üretilemedi. Önce ROI ve OCR adımlarını kontrol edin.")
-        st.stop()
+        if edited_df_safe.empty:
+            st.error("Peak Table boş olduğu için klinik yorum üretilemedi. Önce ROI ve OCR adımlarını kontrol edin.")
+            st.stop()
 
-    for col in ["Peak", "R.time", "Height", "Area", "Area %"]:
-        if col not in edited_df_safe.columns:
-            edited_df_safe[col] = ""
+        for col in ["Peak", "R.time", "Height", "Area", "Area %"]:
+            if col not in edited_df_safe.columns:
+                edited_df_safe[col] = ""
 
-    edited_df_safe = edited_df_safe[["Peak", "R.time", "Height", "Area", "Area %"]]
-    edited_df_safe = edited_df_safe.fillna("").astype(str)
+        edited_df_safe = edited_df_safe[["Peak", "R.time", "Height", "Area", "Area %"]]
+        edited_df_safe = edited_df_safe.fillna("").astype(str)
 
-    has_any_value = edited_df_safe.apply(lambda col: col.str.strip()).ne("").any().any()
-    has_any_area = edited_df_safe["Area %"].str.strip().ne("").any()
+        has_any_value = edited_df_safe.apply(lambda col: col.str.strip()).ne("").any().any()
+        has_any_area = edited_df_safe["Area %"].str.strip().ne("").any()
 
-    if not has_any_value or not has_any_area:
-        st.error("Peak Table içeriği boş olduğu için klinik yorum üretilemedi. Önce OCR sonucunu doğrulayın veya manuel veri girin.")
-        st.stop()
+        if not has_any_value or not has_any_area:
+            st.error("Peak Table içeriği boş olduğu için klinik yorum üretilemedi. Önce OCR sonucunu doğrulayın veya manuel veri girin.")
+            st.stop()
 
-    named = extract_named_peaks(edited_df_safe)
-    calc_hba, included_peaks, excluded_peaks = calculate_hba_from_table(
-        edited_df_safe,
-        s_threshold=threshold,
-        unknown_threshold=threshold
-    )
-    is_variant, variant_reasons = variant_flag(named, threshold=threshold)
+        named = extract_named_peaks(edited_df_safe)
+        calc_hba, included_peaks, excluded_peaks = calculate_hba_from_table(
+            edited_df_safe,
+            s_threshold=threshold,
+            unknown_threshold=threshold
+        )
+        is_variant, variant_reasons = variant_flag(named, threshold=threshold)
 
-    final_variant = is_variant or manual_override_variant
-    hba2 = named["HbA2"] if named["HbA2"] is not None else 0.0
-    hbf = named["HbF"] if named["HbF"] is not None else 0.0
+        final_variant = is_variant or manual_override_variant
+        hba2 = named["HbA2"] if named["HbA2"] is not None else 0.0
+        hbf = named["HbF"] if named["HbF"] is not None else 0.0
 
-    if final_variant:
-        result = {
-            "block": None,
-            "reason": "S-Window ve/veya Unknown pik > %5 olduğu için ek pik / yapısal varyant lehine bulgu",
-            "comment": build_variant_comment(named, repeat_confirmed=repeat_confirmed),
-        }
-    else:
-        result = generate_comment(
-            age_years=age_years,
-            sex=sex,
-            hba2=float(hba2),
-            hbf=float(hbf),
-            hba=float(calc_hba),
-            extra_variant_peak=False
+        if final_variant:
+            result = {
+                "block": None,
+                "reason": "S-Window ve/veya Unknown pik > %5 olduğu için ek pik / yapısal varyant lehine bulgu",
+                "comment": build_variant_comment(named, repeat_confirmed=repeat_confirmed),
+            }
+        else:
+            result = generate_comment(
+                age_years=age_years,
+                sex=sex,
+                hba2=float(hba2),
+                hbf=float(hbf),
+                hba=float(calc_hba),
+                extra_variant_peak=False
+            )
+
+        peak_changes, _ = compare_peak_tables(parsed_df, edited_df_safe)
+        if peak_changes:
+            details = " | ".join(peak_changes[:25])
+            if len(peak_changes) > 25:
+                details += f" | ... toplam {len(peak_changes)} değişiklik"
+            write_log("PEAK_TABLE_EDIT", details)
+        else:
+            write_log("PEAK_TABLE_EDIT", "Peak table üzerinde değişiklik yapılmadı")
+
+        write_log(
+            "GENERATE_COMMENT",
+            f"Yorum üretildi | yaş={age_years} | cinsiyet={sex} | HbA={calc_hba:.1f} | HbA2={fmt_optional_pct(named['HbA2'])} | HbF={fmt_optional_pct(named['HbF'])} | varyant={'Evet' if final_variant else 'Hayır'}"
         )
 
-    peak_changes, _ = compare_peak_tables(parsed_df, edited_df_safe)
-    if peak_changes:
-        details = " | ".join(peak_changes[:25])
-        if len(peak_changes) > 25:
-            details += f" | ... toplam {len(peak_changes)} değişiklik"
-        write_log("PEAK_TABLE_EDIT", details)
-    else:
-        write_log("PEAK_TABLE_EDIT", "Peak table üzerinde değişiklik yapılmadı")
+        st.subheader("Sonuç")
+        if result["block"]:
+            st.success(f"Seçilen blok: {result['block']}")
+        else:
+            st.warning("Varyant yolu kullanıldı veya standart blok seçilemedi")
 
-    write_log(
-        "GENERATE_COMMENT",
-        f"Yorum üretildi | yaş={age_years} | cinsiyet={sex} | HbA={calc_hba:.1f} | HbA2={fmt_optional_pct(named['HbA2'])} | HbF={fmt_optional_pct(named['HbF'])} | varyant={'Evet' if final_variant else 'Hayır'}"
-    )
+        st.write(f"**Gerekçe:** {result['reason']}")
+        st.text_area("Oluşan yorum", value=result["comment"], height=320)
+        st.caption(INTERPRETATION_SIGNATURE)
 
-    st.subheader("Sonuç")
-    if result["block"]:
-        st.success(f"Seçilen blok: {result['block']}")
-    else:
-        st.warning("Varyant yolu kullanıldı veya standart blok seçilemedi")
+        if peak_changes:
+            with st.expander("Kaydedilen Peak Table değişiklik özeti"):
+                st.write(pd.DataFrame({"Değişiklik": peak_changes}))
 
-    st.write(f"**Gerekçe:** {result['reason']}")
-    st.text_area("Oluşan yorum", value=result["comment"], height=320)
-    st.caption(INTERPRETATION_SIGNATURE)
+        export_text = (
+            "Hb ELEKTROFOREZ YORUM RAPORU\n"
+            "===========================\n\n"
+            f"Uygulama: {APP_NAME} {APP_VERSION}\n"
+            f"İmza: {AUTHOR_LINE}\n"
+            f"Kullanıcı: {st.session_state.get('username', '')}\n"
+            f"Yaş: {age_years}\n"
+            f"Cinsiyet: {sex}\n"
+            f"HbA (hesaplanan): {calc_hba:.1f}\n"
+            f"HbA2: {fmt_optional_pct(named['HbA2'])}\n"
+            f"HbF: {fmt_optional_pct(named['HbF'])}\n"
+            f"S-Window: {fmt_optional_pct(named['S-Window'])}\n"
+            f"Unknown: {fmt_optional_pct(named['Unknown'])}\n"
+            f"Varyant lehine bulgu: {'Evet' if final_variant else 'Hayır'}\n\n"
+            "Peak Table\n"
+            "----------\n"
+            f"{df_to_text(edited_df_safe)}\n\n"
+            "HbA hesaplama kuralı\n"
+            "--------------------\n"
+            "HbA = 100 - (HbA2 + HbF + S-Window(>%eşik) + Unknown(>%eşik))\n\n"
+            f"Gerekçe: {result['reason']}\n\n"
+            "Yorum\n"
+            "-----\n"
+            f"{result['comment']}\n"
+        )
 
-    if peak_changes:
-        with st.expander("Kaydedilen Peak Table değişiklik özeti"):
-            st.write(pd.DataFrame({"Değişiklik": peak_changes}))
+        st.download_button(
+            "Raporu TXT olarak indir",
+            data=export_text,
+            file_name="hey_roi_v12_rapor.txt",
+            mime="text/plain",
+            key="download_report_button",
+        )
+    except Exception as e:
+        st.error(f"Klinik yorum üretiminde hata: {type(e).__name__}: {e}")
+        st.exception(e)
 
-    export_text = (
-        "Hb ELEKTROFOREZ YORUM RAPORU\n"
-        "===========================\n\n"
-        f"Uygulama: {APP_NAME} {APP_VERSION}\n"
-        f"İmza: {AUTHOR_LINE}\n"
-        f"Kullanıcı: {st.session_state.get('username', '')}\n"
-        f"Yaş: {age_years}\n"
-        f"Cinsiyet: {sex}\n"
-        f"HbA (hesaplanan): {calc_hba:.1f}\n"
-        f"HbA2: {fmt_optional_pct(named['HbA2'])}\n"
-        f"HbF: {fmt_optional_pct(named['HbF'])}\n"
-        f"S-Window: {fmt_optional_pct(named['S-Window'])}\n"
-        f"Unknown: {fmt_optional_pct(named['Unknown'])}\n"
-        f"Varyant lehine bulgu: {'Evet' if final_variant else 'Hayır'}\n\n"
-        "Peak Table\n"
-        "----------\n"
-        f"{df_to_text(edited_df_safe)}\n\n"
-        "HbA hesaplama kuralı\n"
-        "--------------------\n"
-        "HbA = 100 - (HbA2 + HbF + S-Window(>%eşik) + Unknown(>%eşik))\n\n"
-        f"Gerekçe: {result['reason']}\n\n"
-        "Yorum\n"
-        "-----\n"
-        f"{result['comment']}\n"
-    )
 
-    st.download_button(
-        "Raporu TXT olarak indir",
-        data=export_text,
-        file_name="hey_roi_v11_rapor.txt",
-        mime="text/plain",
-        key="download_report_button",
-    )
+
+
+
+
+
