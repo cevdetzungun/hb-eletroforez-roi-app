@@ -1018,8 +1018,6 @@ if st.session_state.parsed_df is None:
             merge_candidate_tables(parsed_direct, parsed_roi_columns),
             concentration_fallback=concentration_fallback
         )
-        st.write("OCR STEP 4 geçti")
-        st.stop()
 
         st.session_state.concentration_fallback = concentration_fallback
         st.session_state.parsed_df = parsed_df
