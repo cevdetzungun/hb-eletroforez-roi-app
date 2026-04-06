@@ -982,6 +982,8 @@ else:
         st.session_state.roi_bottom = bottom
         st.session_state.roi_ready = True
         st.session_state.ocr_ready = False
+        st.session_state.parsed_df = None
+        st.session_state.concentration_fallback = None
 
     if not st.session_state.get("roi_ready"):
         st.stop()
