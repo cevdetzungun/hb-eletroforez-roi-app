@@ -1012,7 +1012,7 @@ if "ocr_ready" not in st.session_state:
 if st.session_state.parsed_df is None:
     if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
         concentration_fallback = parse_concentration_box(roi_img)
-        parsed_direct = standardize_table([], concentration_fallback=concentration_fallback)
+        parsed_direct = standardize_table(pd.DataFrame(), concentration_fallback=concentration_fallback)
         parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
         st.write("OCR STEP 3 geçti")
         st.stop()
