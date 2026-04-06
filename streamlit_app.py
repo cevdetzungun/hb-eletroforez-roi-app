@@ -1012,12 +1012,8 @@ if "ocr_ready" not in st.session_state:
 if st.session_state.parsed_df is None:
     if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
         concentration_fallback = parse_concentration_box(roi_img)
-        parsed_direct = standardize_table(parse_rows_from_text(best_text), concentration_fallback=concentration_fallback)
-        parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
-        parsed_df = standardize_table(
-            merge_candidate_tables(parsed_direct, parsed_roi_columns),
-            concentration_fallback=concentration_fallback
-        )
+        concentration_fallback = st.session_state.concentration_fallback
+        parsed_df = st.session_state.parsed_df
 
         st.session_state.concentration_fallback = concentration_fallback
         st.session_state.parsed_df = parsed_df
