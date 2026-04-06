@@ -1172,7 +1172,4 @@ if run_comment:
     st.stop()
 
 
-    st.write("OK 6")
-    st.stop()
-
     
