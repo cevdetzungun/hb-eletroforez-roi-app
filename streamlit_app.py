@@ -1011,9 +1011,9 @@ if "ocr_ready" not in st.session_state:
 
 if st.session_state.parsed_df is None:
     if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
-        st.write("OCR başladı")
-        st.stop()
         concentration_fallback = parse_concentration_box(roi_img)
+        st.write("OCR STEP 1 geçti")
+        st.stop()
         concentration_fallback = st.session_state.concentration_fallback
         parsed_df = st.session_state.parsed_df
 
