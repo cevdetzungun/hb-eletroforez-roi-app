@@ -1007,13 +1007,28 @@ st.image(roi_img, caption="Seçilen Peak Table ROI", width="stretch")
 if "ocr_ready" not in st.session_state:
     st.session_state.ocr_ready = False
 
-if not st.session_state.ocr_ready:
+if st.session_state.parsed_df is None:
     if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
-        st.session_state.ocr_ready = True
+        concentration_fallback = parse_concentration_box(roi_img)
+        parsed_direct = standardize_table(parse_rows_from_text(best_text), concentration_fallback=concentration_fallback)
+        parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
+        parsed_df = standardize_table(
+            merge_candidate_tables(parsed_direct, parsed_roi_columns),
+            concentration_fallback=concentration_fallback
+        )
+
+        st.session_state.concentration_fallback = concentration_fallback
+        st.session_state.parsed_df = parsed_df
         st.rerun()
     else:
         st.info("Önce ROI'yi uygula, sonra OCR / tablo okuma işlemini bu butonla başlat.")
     st.stop()
+
+if "parsed_df" not in st.session_state:
+    st.session_state.parsed_df = None
+
+if "concentration_fallback" not in st.session_state:
+    st.session_state.concentration_fallback = None
 
 
 st.subheader("ROI OCR ve Peak Table ayrıştırma")
@@ -1029,13 +1044,8 @@ for _, img_variant in variant_images.items():
         best_score = score
         best_text = txt
 
-concentration_fallback = parse_concentration_box(roi_img)
-parsed_direct = standardize_table(parse_rows_from_text(best_text), concentration_fallback=concentration_fallback)
-parsed_roi_columns = standardize_table(parse_rows_by_roi_columns(roi_img), concentration_fallback=concentration_fallback)
-parsed_df = standardize_table(
-    merge_candidate_tables(parsed_direct, parsed_roi_columns),
-    concentration_fallback=concentration_fallback
-)
+concentration_fallback = st.session_state.concentration_fallback
+parsed_df = st.session_state.parsed_df
 
 st.dataframe(parsed_df, width="stretch")
 
