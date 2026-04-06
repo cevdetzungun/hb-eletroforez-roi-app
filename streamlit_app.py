@@ -1154,6 +1154,9 @@ manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işare
 st.write("PRE-BUTTON SAFE")
 st.stop()
 
+st.write("BUTTON LINE REACHED")
+st.stop()
+
 
 if st.button("Klinik yorumu üret", type="primary"):
     st.write("OK 6")
