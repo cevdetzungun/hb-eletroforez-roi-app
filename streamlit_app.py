@@ -1004,6 +1004,18 @@ else:
 
 st.image(roi_img, caption="Seçilen Peak Table ROI", width="stretch")
 
+if "ocr_ready" not in st.session_state:
+    st.session_state.ocr_ready = False
+
+if not st.session_state.ocr_ready:
+    if st.button("ROI sonrası OCR / tablo okuma işlemini başlat", type="primary"):
+        st.session_state.ocr_ready = True
+        st.rerun()
+    else:
+        st.info("Önce ROI'yi uygula, sonra OCR / tablo okuma işlemini bu butonla başlat.")
+    st.stop()
+
+
 st.subheader("ROI OCR ve Peak Table ayrıştırma")
 
 best_text = ""
