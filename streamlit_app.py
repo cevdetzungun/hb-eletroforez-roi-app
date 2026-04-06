@@ -1151,6 +1151,8 @@ with c2:
     
 
 manual_override_variant = st.checkbox("Varyant lehine bulgu olarak manuel işaretle", value=False)
+st.write("PRE-BUTTON SAFE")
+st.stop()
 
 
 if st.button("Klinik yorumu üret", type="primary"):
